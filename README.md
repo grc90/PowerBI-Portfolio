@@ -16,7 +16,6 @@ Creación de indicadores clave (KPI) y reportes dinámicos.
 
 Aplicación de principios de BI en marketing, ventas y gestión operativa.
 
-📁 Estructura del portfolio
 📂 PowerBI-Portfolio/
  ├── 📁 Sales-Performance/
  │    ├── SalesPerformance.pbix
@@ -31,6 +30,7 @@ Aplicación de principios de BI en marketing, ventas y gestión operativa.
  │    ├── preview.png
  │    ├── README.md
  ├── README.md  <-- archivo principal (este)
+
 
 📊 Proyectos destacados
 Proyecto	Descripción	Enlace
@@ -65,12 +65,12 @@ Creation of KPIs and dynamic reporting.
 Application of BI principles in marketing, sales, and operational management.
 
 📊 Featured Projects
-Project	Description	Link
-Sales Performance Dashboard	Monthly sales analysis by region, product, and profitability.	View in Power BI
+| Project                             | Description                                                       | Link                  |
+| ----------------------------------- | ----------------------------------------------------------------- | --------------------- |
+| **Sales Performance Dashboard**     | Monthly sales analysis by region, product, and profitability.     | [View in Power BI](#) |
+| **Marketing Insights Report**       | Campaign tracking, ROI analysis, and customer behavior insights.  | [View in Power BI](#) |
+| **Operations Efficiency Dashboard** | Cost control, productivity, and logistics performance monitoring. | [View in Power BI](#) |
 
-Marketing Insights Report	Campaign tracking, ROI analysis, and customer behavior insights.	View in Power BI
-
-Operations Efficiency Dashboard	Cost control, productivity, and logistics performance monitoring.	View in Power BI
 🔗 Connect with me
 
 💼 LinkedIn
