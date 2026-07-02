@@ -6,8 +6,8 @@ The ETL for this project is built entirely in Power Query using a **two-layer ar
 
 ```
 STAGING LAYER (load disabled — not visible in the model)
-  Src_MarketingData    ← raw import, unmodified
-  Stg_MarketingData_Clean ← all data quality fixes applied
+  Src_MarketingData         ← raw import, unmodified
+  Stg_MarketingData_Clean   ← all data quality fixes applied
 
 MODEL LAYER (load enabled — visible in the model)
   Dim_Customer     ← references Stg_MarketingData_Clean
