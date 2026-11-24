@@ -59,6 +59,13 @@ Portfolio de proyectos de análisis de datos y Business Intelligence, centrado e
 - El ingreso es el mejor predictor de respuesta (16.55% en ingresos altos vs 2.94% en bajos), y tener hijos en casa la reduce unas 3× incluso dentro del mismo tramo de ingreso.
 - El Catálogo vende menos en volumen, pero es donde compran los clientes de mayor valor, así que no está claro que esté "rindiendo poco".
 
+**Key findings:**
+
+- The last campaign performs about 2.5× better than the historical average; Campaign 2 (1.34%) is the weakest.
+- Only 27% of customers ever responded to a campaign: reach is the main problem.
+- Income is the strongest predictor of response (16.55% for high income vs 2.94% for low), and having children at home cuts it by about 3×, even within the same income bracket.
+- Catalogue sells less by volume, but it's where the highest-value customers buy, so it's not clear it's actually "underperforming".
+
 Conclusiones completas en [`docs/09_conclusions.md`](./01_Maven_Market/docs/09_conclusions.md) y limitaciones en [`docs/08_limitations.md`](./01_Maven_Market/docs/08_limitations.md).
 
 - **Herramientas:** Power BI (Power Query, modelado, DAX, diseño de reportes), formato PBIP (modelo en TMDL + reporte en PBIR, versionable en git).
