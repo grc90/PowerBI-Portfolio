@@ -13,15 +13,15 @@ Portfolio de proyectos de análisis de datos y Business Intelligence, centrado e
 
 ## Estado del portfolio / Portfolio status
 
-**ES** — Este repositorio está en fase de construcción. El primer proyecto (Maven Market) ya tiene modelo de datos, limpieza documentada y análisis de negocio; el dashboard visual todavía se está construyendo. Los demás proyectos son carpetas reservadas sin contenido aún. Este README se irá actualizando a medida que cada proyecto avance.
+**ES** — El primer proyecto (Maven Market) está completo: pipeline de Power Query, modelo estrella, medidas DAX y un reporte de 4 páginas, todo versionado en formato PBIP y documentado. Los demás proyectos son carpetas reservadas sin contenido aún.
 
-**EN** — This repository is a work in progress. The first project (Maven Market) already has a data model, documented data cleaning, and business analysis; the visual dashboard is still being built. The other projects are placeholder folders with no content yet. This README will be updated as each project progresses.
+**EN** — The first project (Maven Market) is complete: Power Query pipeline, star schema model, DAX measures, and a 4-page report, all versioned in PBIP format and documented. The other projects are placeholder folders with no content yet.
 
 ## Proyectos / Projects
 
 | Proyecto | Carpeta | Estado | Notas |
 |---|---|---|---|
-| Maven Market | [`01_Maven_Market/`](./01_Maven_Market/) | 🔧 Modelo de datos completo — dashboard visual en progreso | Modelado de datos, limpieza y preguntas de negocio documentados; visuales del reporte aún no construidos en el `.pbix` |
+| Maven Market | [`01_Maven_Market/`](./01_Maven_Market/) | ✅ Completo | Modelo estrella, medidas DAX y reporte de 4 páginas en PBIP, con documentación y conclusiones |
 | Customer Churn | [`02_Customer_Churn/`](./02_Customer_Churn/) | 📁 Reservado | Carpeta creada, sin contenido aún |
 | Supply Chain | [`03_Supply_Chain/`](./03_Supply_Chain/) | 📁 Reservado | Carpeta creada, sin contenido aún |
 | Marketing Analytics | [`04_Marketing_Analytics/`](./04_Marketing_Analytics/) | 📁 Reservado | Carpeta creada, sin contenido aún |
@@ -30,17 +30,39 @@ Portfolio de proyectos de análisis de datos y Business Intelligence, centrado e
 
 ## 01 — Maven Market
 
-- **Objetivo:** Analizar los datos de 2,240 clientes de una campaña de marketing (segmentación, rendimiento de canales y campañas, y desempeño de productos) para responder un set concreto de preguntas de negocio mediante un modelo de datos y dashboard en Power BI.
-- **Fuente / atribución:** El dataset (`data/raw/Marketing Campaign.xlsx`) y el brief original ([`docs/Project Brief - Marketing Campaign.pdf`](./01_Maven_Market/docs/Project%20Brief%20-%20Marketing%20Campaign.pdf)) provienen de un caso de estudio público desarrollado originalmente por **Shahid Khan** ([LinkedIn](https://www.linkedin.com/in/shahid-khan-791b78239/), [Kaggle](https://www.kaggle.com/shahidkhan01174)). Este proyecto retoma ese dataset para construir un modelo de datos y análisis propio en Power BI, incluyendo una revisión crítica de algunas conclusiones del brief original (ver `docs/business_questions.md`).
+![Executive Summary](./01_Maven_Market/images/overview.png)
+
+- **Objetivo:** Analizar los datos de 2,240 clientes de una campaña de marketing (segmentación, rendimiento de canales y campañas, y desempeño de productos) para responder un set concreto de preguntas de negocio con un modelo de datos y un dashboard en Power BI.
+- **Fuente / atribución:** El dataset (`data/raw/Marketing Campaign.xlsx`) y el brief original ([`docs/Project Brief - Marketing Campaign.pdf`](./01_Maven_Market/docs/Project%20Brief%20-%20Marketing%20Campaign.pdf)) provienen de un caso de estudio público desarrollado originalmente por **Shahid Khan** ([LinkedIn](https://www.linkedin.com/in/shahid-khan-791b78239/), [Kaggle](https://www.kaggle.com/shahidkhan01174)). Este proyecto retoma ese dataset para construir un modelo y un análisis propios, incluyendo una revisión crítica de algunas conclusiones del brief original (ver [`docs/04_business_questions.md`](./01_Maven_Market/docs/04_business_questions.md)).
 - **Dataset:** 2,240 clientes × 28 columnas (hoja `marketing_data`), con demografía, gasto por categoría de producto, respuesta a 6 campañas y compras por canal (Web/Catálogo/Tienda).
-- **Modelo de datos:** Esquema estrella/constelación propio — `Dim_Customer`, `Fact_Spend`, `Fact_Channel`, `Fact_Campaign`, `Dim_Campaign`, `Dim_Date` — con justificación de cada decisión de diseño. Ver [`docs/data_model.md`](./01_Maven_Market/docs/data_model.md).
-- **Limpieza de datos:** Nulos en `Income` (24 filas en 0 + 1 outlier de $666,666), `Year_Birth` implausible (3 filas), normalización de `Marital_Status`. 2,240 filas retenidas, 0 eliminadas. Ver [`docs/data_remediation.md`](./01_Maven_Market/docs/data_remediation.md).
-- **Preguntas de negocio / páginas de dashboard planificadas:** Executive Summary, Customer Segmentation, Campaign & Channel Performance, Product Performance. Ver [`docs/business_questions.md`](./01_Maven_Market/docs/business_questions.md).
-- **KPIs o métricas:** No verificables todavía — el reporte visual del `.pbix` aún no tiene gráficos ni KPIs construidos (solo el modelo de datos).
-- **Herramientas y skills demostradas:** Power BI (modelado de datos), modelado de datos (esquema estrella), limpieza y transformación de datos, definición de preguntas de negocio.
-- **Archivos relevantes:** [`01_Maven_Market/`](./01_Maven_Market/) — `powerbi/maven_market.pbix`, `data/raw/Marketing Campaign.xlsx`, `docs/`
-- **Estado:** 🔧 Modelo de datos completo — dashboard visual en progreso (el `.pbix` tiene el modelo cargado pero el reporte todavía tiene una sola página en blanco, sin visuales).
-- **Cómo visualizarlo:** Abrir `01_Maven_Market/powerbi/maven_market.pbix` con [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (gratuito, Windows) para explorar el modelo de datos. Las capturas de pantalla se añadirán a `images/` cuando el reporte visual esté construido.
+- **Power Query:** Pipeline en dos capas: staging con todas las correcciones de calidad y capa de modelo que arma el esquema estrella. Ver [`docs/06_power_query.md`](./01_Maven_Market/docs/06_power_query.md).
+- **Modelo de datos:** Esquema estrella/constelación propio (`Dim_Customer`, `Fact_Spend`, `Fact_Channel`, `Fact_Campaign`, `Dim_Campaign`, `Dim_Date`), con la justificación de cada decisión de diseño. Ver [`docs/05_data_model.md`](./01_Maven_Market/docs/05_data_model.md).
+- **Limpieza de datos:** `Income` en 0 (24 filas) y un outlier de $666,666, `Year_Birth` implausible (3 filas), normalización de `Marital_Status`. 2,240 filas retenidas, 0 eliminadas. Ver [`docs/03_data_quality.md`](./01_Maven_Market/docs/03_data_quality.md).
+- **Medidas DAX:** Ver [`docs/07_dax_measures.md`](./01_Maven_Market/docs/07_dax_measures.md).
+- **Reporte (4 páginas):** Executive Summary, Customer Segmentation, Campaign & Channel Performance y Product Performance.
+
+**KPIs (total de la base, sin filtros):**
+
+| KPI | Valor |
+|---|---|
+| Clientes | 2,240 |
+| Gasto total (2 años) | $1,356,988 |
+| Gasto promedio por cliente | $606 |
+| Tasa de respuesta (6 campañas) | 7.45% |
+| Última campaña vs promedio histórico | 14.91% vs 5.96% |
+| Clientes que aceptaron al menos una campaña | 27.19% |
+
+**Hallazgos principales:**
+
+- La última campaña rinde unas 2.5× más que el promedio histórico; la Campaña 2 (1.34%) es la más débil.
+- Solo el 27% de los clientes respondió alguna vez a una campaña: el alcance es el problema principal.
+- El ingreso es el mejor predictor de respuesta (16.55% en ingresos altos vs 2.94% en bajos), y tener hijos en casa la reduce unas 3× incluso dentro del mismo tramo de ingreso.
+- El Catálogo vende menos en volumen, pero es donde compran los clientes de mayor valor, así que no está claro que esté "rindiendo poco".
+
+Conclusiones completas en [`docs/09_conclusions.md`](./01_Maven_Market/docs/09_conclusions.md) y limitaciones en [`docs/08_limitations.md`](./01_Maven_Market/docs/08_limitations.md).
+
+- **Herramientas:** Power BI (Power Query, modelado, DAX, diseño de reportes), formato PBIP (modelo en TMDL + reporte en PBIR, versionable en git).
+- **Cómo visualizarlo:** Ver las capturas en [`01_Maven_Market/images/`](./01_Maven_Market/images/) o abrir `01_Maven_Market/powerbi/maven_market.pbip` con [Power BI Desktop](https://powerbi.microsoft.com/desktop/). Detalle completo en el [README del proyecto](./01_Maven_Market/README.md).
 
 ## Próximos proyectos / Upcoming projects
 
@@ -53,6 +75,8 @@ Portfolio de proyectos de análisis de datos y Business Intelligence, centrado e
 Herramientas y competencias confirmadas por mí para este portfolio:
 
 - Power BI
+- DAX
+- Power Query
 - Excel
 - Looker Studio
 - SQL
@@ -63,13 +87,11 @@ Herramientas y competencias confirmadas por mí para este portfolio:
 - Análisis y seguimiento de KPIs (ROI, CAC, CPL)
 - Storytelling de datos para negocio
 
-> Nota: DAX y Power Query se documentarán como skills confirmadas cuando el reporte visual y las medidas del proyecto Maven Market estén construidos en el `.pbix` (actualmente solo el modelo de datos está cargado).
-
 ## Cómo visualizar los proyectos / How to view the projects
 
-**ES** — Los proyectos usan archivos `.pbix` de Power BI. Para abrirlos se necesita [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (gratuito, disponible para Windows). Mientras los archivos de cada proyecto se completan, se irán añadiendo capturas de pantalla en la carpeta `images/` de cada proyecto como alternativa de visualización rápida sin necesidad de instalar Power BI.
+**ES** — Cada proyecto incluye capturas en su carpeta `images/` para verlo sin instalar nada. Para explorar el reporte interactivo se necesita [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (gratuito, Windows) y abrir el `.pbip` o `.pbix` del proyecto.
 
-**EN** — Projects use Power BI `.pbix` files. Opening them requires [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (free, Windows only). As each project's files are completed, screenshots will be added to its `images/` folder as a quick way to view the work without installing Power BI.
+**EN** — Each project includes screenshots in its `images/` folder so it can be viewed without installing anything. To explore the interactive report, open the project's `.pbip` or `.pbix` file in [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (free, Windows only).
 
 ## Contacto / Contact
 
