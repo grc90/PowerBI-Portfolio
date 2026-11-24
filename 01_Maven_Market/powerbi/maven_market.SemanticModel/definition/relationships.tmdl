@@ -1,0 +1,20 @@
+relationship acc02a38-8f18-55cd-2d4a-579ff558c823
+	fromColumn: Fact_Spend.CustomerID
+	toColumn: Dim_Customer.CustomerID
+
+relationship 50799eca-7d94-98b1-7dc7-5ea7efa0344a
+	fromColumn: Fact_Channel.CustomerID
+	toColumn: Dim_Customer.CustomerID
+
+relationship 920dc8f9-cb66-24ff-6646-32a7e0aad0db
+	fromColumn: Fact_Campaign.CustomerID
+	toColumn: Dim_Customer.CustomerID
+
+relationship 6cc8d98a-505b-5a2f-eb23-5c7e14f44e0a
+	fromColumn: Fact_Campaign.CampaignID
+	toColumn: Dim_Campaign.CampaignID
+
+relationship ee97bf46-1b3d-dbe7-9b76-adea5dff4f7d
+	fromColumn: Dim_Customer.Enrollment_Date
+	toColumn: Dim_Date.Date
+

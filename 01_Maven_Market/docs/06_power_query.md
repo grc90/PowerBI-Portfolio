@@ -1,6 +1,6 @@
 # Power Query Pipeline
 
-The ETL for this project is built entirely in Power Query using a **two-layer architecture**: a staging layer that centralizes all data quality remediation, and a model layer that references staging and shapes it into the final star schema.
+I built the whole ETL in Power Query with **two layers**: a staging layer where all the data quality fixes live, and a model layer that reads from staging and shapes the data into the final star schema.
 
 ## Architecture
 
@@ -20,49 +20,52 @@ MODEL LAYER (load enabled — visible in the model)
 
 ### Why two layers?
 
-Every downstream query needs the same data quality fixes: nulled income zeros, nulled implausible birth years, recoded marital statuses. Applying these fixes once in a staging query and referencing it from downstream queries means:
+Every downstream query needs the same fixes: income zeros nulled, implausible birth years nulled, marital statuses recoded. If I apply them once in a staging query and have everything else reference it:
 
-- Fixes are written and audited once, not five times.
-- New data quality issues can be added to one place and propagate everywhere.
-- Downstream queries stay focused on shaping, not cleaning — separation of concerns.
+- I write and check each fix once, not five times.
+- A new data quality issue gets fixed in one place and the fix reaches every table.
+- The downstream queries only deal with shaping the data, not cleaning it.
 
-The alternative (five queries each loading the raw file independently) is a maintenance liability that drifts out of sync.
+The alternative, five queries each loading the raw file on their own, works on day one and then slowly drifts out of sync. I'd rather not maintain that.
 
 ## Query 1 — `Src_MarketingData`
 
-**Load disabled.** Raw import from `Marketing_Campaign.xlsx`, sheet `marketing_data`. First row promoted as headers. No transformations applied — this is the untouched source of truth, kept accessible in case an issue needs to be traced back to the original data.
+**Load disabled.** Raw import from `Marketing_Campaign.xlsx`, sheet `marketing_data`, with the first row promoted to headers. Nothing else. I keep it untouched so I can always trace a problem back to the original data.
 
 ## Query 2 — `Stg_MarketingData_Clean`
 
-**Load disabled.** References `Src_MarketingData`. Applies all data quality remediations documented in `02_data_quality.md`.
+**Load disabled.** References `Src_MarketingData` and applies every fix documented in [`03_data_quality.md`](03_data_quality.md).
 
-Applied steps (in order):
+Applied steps, in order:
 
 | Step | Purpose |
 |---|---|
 | `Trim Income Header` | Renames `"Income "` → `"Income"` (removes trailing space) |
-| `Set Column Types` | Explicit type for every column — no reliance on auto-detection |
+| `Set Column Types` | Explicit type for every column, no relying on auto-detection |
 | `Null Invalid Incomes` | Conditional Column: sets `Income` to null when 0 or 666666 |
 | `Null Implausible Birth Years` | Conditional Column: sets `Year_Birth` to null when ≤ 1900 |
 | `Recode Alone to Single` | `Marital_Status` normalization |
 | `Recode YOLO to Other` | `Marital_Status` normalization |
 | `Recode Absurd to Other` | `Marital_Status` normalization |
 
-### Note on Conditional Column vs Replace Values for numeric nulls
+### Conditional Column vs Replace Values for numeric nulls
 
-For numeric columns, the Replace Values dialog does not accept an empty value — it requires a numeric input. Empty fields in Conditional Column, however, produce a true `null` if the resulting column is typed numeric immediately. The nulling of `Income` and `Year_Birth` was implemented via Conditional Column with explicit numeric typing afterwards, avoiding the common pitfall where a "blank" value silently becomes an empty string (`""`) instead of null.
+This one cost me some time. On a numeric column, the Replace Values dialog won't accept an empty value; it insists on a number. A Conditional Column with an empty output, on the other hand, produces a real `null`, as long as you type the column as numeric right away. So I nulled `Income` and `Year_Birth` with Conditional Columns and typed them immediately after. Otherwise you fall into a classic trap: the "blank" ends up stored as an empty string (`""`) instead of a null.
 
 ## Query 3 — `Dim_Customer`
 
 References `Stg_MarketingData_Clean`. Steps:
 
-1. Select customer-attribute columns (drops `Mnt*`, `AcceptedCmp*`, `Response`, and the three channel `Num*Purchases` columns — those go to facts)
+1. Keep only the customer attributes (drops `Mnt*`, `AcceptedCmp*`, `Response` and the three channel `Num*Purchases` columns, which go to the facts)
 2. Rename `ID` → `CustomerID`, `Dt_Customer` → `Enrollment_Date`
-3. Add `Age` — custom column: `if [Year_Birth] = null then null else 2014 - [Year_Birth]`
-4. Add `Age_Bucket` — conditional column (null → Unknown, ≤34 → Young Adult, ≤54 → Adult, else Senior). The null-check clause must come first, since numeric comparisons against null return null (neither true nor false) and would fall through to the else branch.
-5. Add `Income_Bucket` — same pattern (null → Unknown, <35k → Low, ≤68k → Mid, else High)
-6. Add `Has_Children` — custom column: `if [Kidhome] + [Teenhome] > 0 then "Yes" else "No"`
-7. Reorder columns and set final types
+3. Add `Age`: custom column `if [Year_Birth] = null then null else 2014 - [Year_Birth]`
+4. Add `Age_Bucket`: conditional column (null → Unknown, ≤34 → Young Adult, ≤54 → Adult, else Senior). The null check has to come first. Comparing a number against null returns null, which is neither true nor false, so those rows would slip through to the else branch and get labeled Senior.
+5. Add `Income_Bucket` with the same pattern (null → Unknown, <35k → Low, ≤68k → Mid, else High)
+6. Add `Has_Children`: custom column `if [Kidhome] + [Teenhome] > 0 then "Yes" else "No"`
+7. Add `Age_Bucket_Sort` / `Income_Bucket_Sort` (1–4) as sort-by columns
+8. Reorder columns and set final types
+
+`Spend_Tier` and `Deal_Shopper` are added *before* the column selection (steps `Add Spend Tier` and `Add Deal Shopper`), because they need the `Mnt*` and channel columns that don't make it into `Dim_Customer`. The thresholds are hardcoded from the source distribution: p75 of total spend = 1,045, and p75 of deal share = 1/3.
 
 ## Query 4 — `Fact_Spend`
 
@@ -70,9 +73,9 @@ References `Stg_MarketingData_Clean`. Steps:
 
 1. Select `ID` + the 6 `Mnt*` columns
 2. Rename `ID` → `CustomerID`
-3. **Unpivot** the 6 `Mnt*` columns → produces `CustomerID`, `Attribute`, `Value`
+3. **Unpivot** the 6 `Mnt*` columns → `CustomerID`, `Attribute`, `Value`
 4. Rename `Attribute` → `Category`, `Value` → `Amount`
-5. Six Replace Values steps to clean category names (`MntWines` → `Wines`, `MntMeatProducts` → `Meat`, etc.)
+5. Six Replace Values steps to clean the category names (`MntWines` → `Wines`, `MntMeatProducts` → `Meat`, etc.)
 6. Set types
 
 Row count: 13,440 (= 2,240 × 6). Total `Amount` matches the sum of the six original `Mnt*` columns.
@@ -81,14 +84,14 @@ Row count: 13,440 (= 2,240 × 6). Total `Amount` matches the sum of the six orig
 
 References `Stg_MarketingData_Clean`. Steps:
 
-1. Select `ID` + the 3 real channel columns (`NumWebPurchases`, `NumCatalogPurchases`, `NumStorePurchases`). `NumDealsPurchases` is deliberately excluded.
+1. Select `ID` + the 3 real channel columns (`NumWebPurchases`, `NumCatalogPurchases`, `NumStorePurchases`). `NumDealsPurchases` is left out on purpose.
 2. Rename `ID` → `CustomerID`
 3. Unpivot the 3 channel columns
 4. Rename `Attribute` → `Channel`, `Value` → `NumPurchases`
 5. Three Replace Values steps: `NumWebPurchases` → `Web`, etc.
 6. Set types
 
-Row count: 6,720 (= 2,240 × 3). Total `NumPurchases` = 28,083, matching the sum of the three original channel columns.
+Row count: 6,720 (= 2,240 × 3). Total `NumPurchases` = 28,083, which matches the sum of the three original channel columns.
 
 ## Query 6 — `Fact_Campaign`
 
@@ -97,30 +100,30 @@ References `Stg_MarketingData_Clean`. Steps:
 1. Select `ID` + `AcceptedCmp1`–`AcceptedCmp5` + `Response`
 2. Rename `ID` → `CustomerID`
 3. Unpivot the 6 campaign columns
-4. Rename `Value` → `Accepted` (keep `Attribute` temporarily)
-5. **Map source column name to `CampaignID`** — conditional column: `AcceptedCmp1` → 1, `AcceptedCmp2` → 2, …, `Response` → 6. Output type explicitly set to Integer to avoid string keys.
+4. Rename `Value` → `Accepted` (keep `Attribute` for now)
+5. **Map the source column name to `CampaignID`** with a conditional column: `AcceptedCmp1` → 1, `AcceptedCmp2` → 2, …, `Response` → 6. The output type is set to Integer explicitly so the keys don't end up as text.
 6. Remove the temporary `Attribute` column
 7. Reorder columns and set types
 
-Row count: 13,440 (= 2,240 × 6). `SUM(Accepted)` = 1,001, matching the sum of the six original campaign columns (144 + 30 + 163 + 167 + 163 + 334). Per-campaign breakdown confirms mapping is correct: `CampaignID = 1` returns 144, `CampaignID = 6` returns 334.
+Row count: 13,440 (= 2,240 × 6). `SUM(Accepted)` = 1,001, matching the six original campaign columns (144 + 30 + 163 + 167 + 163 + 334). I also checked the mapping per campaign: `CampaignID = 1` returns 144 and `CampaignID = 6` returns 334.
 
-### Why map to an integer key instead of joining on the source column name
+### Why an integer key and not the column name
 
-A join on text (`"AcceptedCmp1"` = `"AcceptedCmp1"`) would work but has three drawbacks: relationships on integers are faster than on text, renaming `"Last Campaign"` in `Dim_Campaign` would require no change in `Fact_Campaign`, and dimensional modeling convention uses surrogate keys (integers) rather than natural keys (text).
+Joining on text (`"AcceptedCmp1"` = `"AcceptedCmp1"`) would work, but I see three reasons not to. Relationships on integers are faster than on text. Renaming `"Last Campaign"` in `Dim_Campaign` doesn't require touching `Fact_Campaign`. And dimensional modeling convention favors surrogate keys (integers) over natural keys (text).
 
 ## Query 7 — `Dim_Campaign`
 
-Manually created via **Especificar datos**. 6 rows, 3 columns (`CampaignID`, `Campaign_Name`, `Is_Latest`). The `Is_Latest` flag identifies the most recent campaign (`Response`, mapped to `CampaignID = 6`) so DAX measures can filter on the dimension rather than hardcoding a column name.
+Created by hand with **Especificar datos** (Enter Data): 6 rows, 3 columns (`CampaignID`, `Campaign_Name`, `Is_Latest`). `Is_Latest` flags the most recent campaign (`Response`, mapped to `CampaignID = 6`), so DAX measures filter on the dimension instead of hardcoding a column name.
 
 ## Query 8 — `Dim_Date`
 
-Generated from a blank query via M code in the Advanced Editor. Bounded to `2012-01-01` through `2014-12-31` (1,096 rows). Columns: `Date`, `Year`, `MonthNum`, `MonthName`, `YearMonth`, `Quarter`.
+Generated from a blank query with M code in the Advanced Editor. Runs from `2012-01-01` to `2014-12-31` (1,096 rows). Columns: `Date`, `Year`, `MonthNum`, `MonthName`, `YearMonth`, `Quarter`.
 
-Marked as the model's date table in Model view. Combined with disabling "Auto date/time" in the file's data load options, this prevents Power BI from generating implicit date hierarchies that would compete with `Dim_Date`.
+Marked as the model's date table in Model view. I also turned off "Auto date/time" in the file's data load options, so Power BI doesn't create hidden date hierarchies that compete with `Dim_Date`.
 
 ## Relationships (built in Model view)
 
-Configured after Close & Apply. All five relationships: 1:*, single-direction filter, active.
+Set up after Close & Apply. All five are 1:*, single-direction and active.
 
 | From | Column | To | Column |
 |---|---|---|---|
@@ -130,9 +133,9 @@ Configured after Close & Apply. All five relationships: 1:*, single-direction fi
 | `Dim_Campaign` | `CampaignID` | `Fact_Campaign` | `CampaignID` |
 | `Dim_Date` | `Date` | `Dim_Customer` | `Enrollment_Date` |
 
-## Key learnings from this pipeline
+## What I'd tell myself before starting
 
-- **Type your columns immediately after creation.** A column typed as `ABC 123` ("Any") will silently store empty strings where you expect nulls. Every calculated or conditional column should be explicitly typed as its next step.
-- **Prefer Conditional Column over Replace Values for numeric nulls.** Replace Values requires a valid numeric input; Conditional Column allows an empty output that becomes null when the column is typed.
-- **Verify totals after every unpivot.** The sum of the unpivoted `Value` column should exactly equal the sum of the original columns. Any deviation signals a filter or type problem.
-- **Rename applied steps as you go.** `Replaced Value1`, `Replaced Value2` is not documentation. `Recode Alone to Single` is.
+- **Type every column right after you create it.** A column left as `ABC 123` ("Any") will quietly store empty strings where you expected nulls. The next step after any calculated or conditional column should be setting its type.
+- **Use Conditional Column, not Replace Values, for numeric nulls.** Replace Values wants a valid number. Conditional Column lets you leave the output empty, and it becomes null once the column is typed.
+- **Check totals after every unpivot.** The unpivoted `Value` column should add up to exactly the same total as the original columns. If it doesn't, something is wrong with a filter or a type.
+- **Rename applied steps as you go.** `Replaced Value1` and `Replaced Value2` don't document anything. `Recode Alone to Single` does.

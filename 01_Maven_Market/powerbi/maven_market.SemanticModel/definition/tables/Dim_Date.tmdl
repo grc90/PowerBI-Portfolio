@@ -1,0 +1,82 @@
+table Dim_Date
+	lineageTag: eb5fc9eb-eb19-4f26-8722-12d251dc1681
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: Long Date
+		lineageTag: b6d0ac1a-40f2-43bd-995a-9000236ef65a
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 277ae00f-486e-450b-b6cf-391680a166f7
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNum
+		dataType: int64
+		formatString: 0
+		lineageTag: 3088b2a4-78d2-4d4e-9229-321bcca6ad3e
+		summarizeBy: sum
+		sourceColumn: MonthNum
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		dataType: string
+		lineageTag: ee70f2bf-a6ef-453d-b32a-4b8982092a99
+		summarizeBy: none
+		sourceColumn: MonthName
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth
+		dataType: string
+		lineageTag: 23ee6e76-24d2-4cbb-a00f-9df8a418f7ed
+		summarizeBy: none
+		sourceColumn: YearMonth
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: string
+		lineageTag: 3e8c27c1-f0ab-4f4d-a138-ad9f399ad6bb
+		summarizeBy: none
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dim_Date = m
+		mode: import
+		source =
+				let
+				    StartDate = #date(2012, 1, 1),
+				    EndDate   = #date(2014, 12, 31),
+				    DayCount  = Duration.Days(EndDate - StartDate) + 1,
+				    DateList  = List.Dates(StartDate, DayCount, #duration(1, 0, 0, 0)),
+				    ToTable   = Table.FromList(DateList, Splitter.SplitByNothing(), {"Date"}),
+				    TypedDate = Table.TransformColumnTypes(ToTable, {{"Date", type date}}),
+				    AddYear   = Table.AddColumn(TypedDate, "Year", each Date.Year([Date]), Int64.Type),
+				    AddMonthNum   = Table.AddColumn(AddYear, "MonthNum", each Date.Month([Date]), Int64.Type),
+				    AddMonthName  = Table.AddColumn(AddMonthNum, "MonthName", each Date.MonthName([Date]), type text),
+				    AddYearMonth  = Table.AddColumn(AddMonthName, "YearMonth", each Text.From([Year]) & "-" & Text.PadStart(Text.From([MonthNum]), 2, "0"), type text),
+				    AddQuarter    = Table.AddColumn(AddYearMonth, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([Date])), type text)
+				in
+				    AddQuarter
+
+	changedProperty = Name
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+

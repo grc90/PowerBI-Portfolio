@@ -1,0 +1,36 @@
+expression Src_MarketingData =
+		let
+		    Origen = Excel.Workbook(File.Contents("C:\Users\grc90_ma6gnj\OneDrive\Documents\GitHub\PowerBI-Portfolio\01_Maven_Market\data\raw\Marketing Campaign.xlsx"), null, true),
+		    marketing_data_Sheet = Origen{[Item="marketing_data",Kind="Sheet"]}[Data],
+		    #"Encabezados promovidos" = Table.PromoteHeaders(marketing_data_Sheet, [PromoteAllScalars=true]),
+		    #"Tipo cambiado" = Table.TransformColumnTypes(#"Encabezados promovidos",{{"ID", Int64.Type}, {"Year_Birth", Int64.Type}, {"Education", type text}, {"Marital_Status", type text}, {" Income ", Int64.Type}, {"Kidhome", Int64.Type}, {"Teenhome", Int64.Type}, {"Dt_Customer", type date}, {"Recency", Int64.Type}, {"MntWines", Int64.Type}, {"MntFruits", Int64.Type}, {"MntMeatProducts", Int64.Type}, {"MntFishProducts", Int64.Type}, {"MntSweetProducts", Int64.Type}, {"MntGoldProds", Int64.Type}, {"NumDealsPurchases", Int64.Type}, {"NumWebPurchases", Int64.Type}, {"NumCatalogPurchases", Int64.Type}, {"NumStorePurchases", Int64.Type}, {"NumWebVisitsMonth", Int64.Type}, {"AcceptedCmp3", Int64.Type}, {"AcceptedCmp4", Int64.Type}, {"AcceptedCmp5", Int64.Type}, {"AcceptedCmp1", Int64.Type}, {"AcceptedCmp2", Int64.Type}, {"Response", Int64.Type}, {"Complain", Int64.Type}, {"Country", type text}})
+		in
+		    #"Tipo cambiado"
+	lineageTag: 3b56e4e3-c035-46a6-9175-df18f261a753
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+
+expression Stg_MarketingData_Clean =
+		let
+		    Origen = Src_MarketingData,
+		    #"Trim Income Header" = Table.RenameColumns(Origen,{{" Income ", "Income"}}),
+		    #"Set Column Types" = Table.TransformColumnTypes(#"Trim Income Header",{{"ID", Int64.Type}, {"Year_Birth", Int64.Type}, {"Education", type text}, {"Marital_Status", type text}, {"Income", type number}, {"Kidhome", Int64.Type}, {"Teenhome", Int64.Type}, {"Dt_Customer", type date}, {"Recency", Int64.Type}, {"MntWines", Int64.Type}, {"MntFruits", Int64.Type}, {"MntMeatProducts", Int64.Type}, {"MntFishProducts", Int64.Type}, {"MntSweetProducts", Int64.Type}, {"MntGoldProds", Int64.Type}, {"NumDealsPurchases", Int64.Type}, {"NumWebPurchases", Int64.Type}, {"NumCatalogPurchases", Int64.Type}, {"NumStorePurchases", Int64.Type}, {"NumWebVisitsMonth", Int64.Type}, {"AcceptedCmp3", Int64.Type}, {"AcceptedCmp4", Int64.Type}, {"AcceptedCmp5", Int64.Type}, {"AcceptedCmp1", Int64.Type}, {"AcceptedCmp2", Int64.Type}, {"Response", Int64.Type}, {"Complain", Int64.Type}, {"Country", type text}}),
+		    #"Null Zero Incomes" = Table.ReplaceValue(#"Set Column Types",0,null,Replacer.ReplaceValue,{"Income"}),
+		    #"Null Income Outlier" = Table.ReplaceValue(#"Null Zero Incomes",666666,null,Replacer.ReplaceValue,{"Income"}),
+		    #"Null Implausible Birth Years" = Table.AddColumn(#"Null Income Outlier", "Year_Birth_Clean", each if [Year_Birth] <= 1900 then null else [Year_Birth]),
+		    #"Columnas quitadas" = Table.RemoveColumns(#"Null Implausible Birth Years",{"Year_Birth"}),
+		    #"Columnas con nombre cambiado2" = Table.RenameColumns(#"Columnas quitadas",{{"Year_Birth_Clean", "Year_Birth"}}),
+		    #"Tipo cambiado" = Table.TransformColumnTypes(#"Columnas con nombre cambiado2",{{"Year_Birth", Int64.Type}}),
+		    #"Recode Alone to Single" = Table.ReplaceValue(#"Tipo cambiado","Alone","Single",Replacer.ReplaceValue,{"Marital_Status"}),
+		    #"Recode YOLO to Other" = Table.ReplaceValue(#"Recode Alone to Single","YOLO","Other",Replacer.ReplaceValue,{"Marital_Status"}),
+		    #"Recode Absurd to Other" = Table.ReplaceValue(#"Recode YOLO to Other","Absurd","Other",Replacer.ReplaceValue,{"Marital_Status"})
+		in
+		    #"Recode Absurd to Other"
+	lineageTag: 702e4ef3-9297-469b-8a7c-ee116d6e3629
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+

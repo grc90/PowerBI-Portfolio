@@ -1,2 +1,5 @@
 *.bak.md
 *.local.*
+# Power BI PBIP: local files
+**/.pbi/localSettings.json
+**/.pbi/cache.abf

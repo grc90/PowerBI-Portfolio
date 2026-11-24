@@ -1,0 +1,170 @@
+table _Measures
+	lineageTag: 266af8fe-5e94-4c03-903c-fb7c3abc8876
+
+	measure 'Total Spend' = ```
+			SUM ( Fact_Spend[Amount] )    
+			```
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 59460ee0-45d4-4909-ad1b-5dd3aee32bd4
+
+	measure 'Total Purchases' = SUM ( Fact_Channel[NumPurchases] )
+		formatString: 0
+		lineageTag: c3dd00af-00fa-4ca5-b82d-254efe46a27d
+
+	measure 'Total Accepted' = SUM ( Fact_Campaign[Accepted] )
+		formatString: 0
+		lineageTag: 29d6c692-af4c-4ff8-a690-e7d7a17631a7
+
+	measure 'Customer Count' = ```
+			COUNTROWS ( Dim_Customer ) 
+			```
+		formatString: #,0
+		lineageTag: 3bf5db97-1f63-4d34-a020-2b9d5e0ce075
+
+	measure 'Total Campaign Offers' = COUNTROWS ( Fact_Campaign )
+		formatString: 0
+		lineageTag: 38662c6b-47c9-46a6-8312-254b374cb3b8
+
+	measure 'Response Rate' =
+			
+			DIVIDE (
+			    [Total Accepted],
+			    [Total Campaign Offers]
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: 2968422a-45ec-4810-91aa-f1627d0fec13
+
+	measure 'Avg Spend per Customer' =
+			
+			DIVIDE (
+			    [Total Spend],
+			    [Customer Count]
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: d950fbe4-ba8b-4901-8110-5845cfb2eb8a
+
+	measure 'Purchases per Customer' =
+			
+			DIVIDE (
+			    [Total Purchases],
+			    [Customer Count]
+			)
+		formatString: 0.0
+		lineageTag: 7d496dac-6aca-4f84-88ae-2246b00c7386
+
+	measure 'Acceptance per Customer' =
+			
+			DIVIDE (
+			    [Total Accepted],
+			    [Customer Count]
+			)
+		formatString: 0.00
+		lineageTag: 7dbdfe90-70fc-41c3-afb9-d53c95599673
+
+	measure 'Latest Campaign Response Rate' =
+			
+			CALCULATE (
+			    [Response Rate],
+			    Dim_Campaign[Is_Latest] = 1
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: f1edaf85-d669-4d95-a141-69ecdc21bfcb
+
+	measure 'Historical Response Rate' =
+			
+			CALCULATE (
+			    [Response Rate],
+			    Dim_Campaign[Is_Latest] = 0
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: cccbc9f6-749e-4b21-ba79-d29f23dc337a
+
+	measure 'Customers Who Accepted Any' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Fact_Campaign[CustomerID] ),
+			    Fact_Campaign[Accepted] = 1
+			)
+		formatString: 0
+		lineageTag: d1229a55-2fb4-492d-bb75-d6375b1cc7a0
+
+	measure 'Campaign Reach Rate' =
+			
+			DIVIDE (
+			    [Customers Who Accepted Any],
+			    [Customer Count]
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: be6a02dc-75e8-4b9a-b4eb-0252063a3426
+
+	measure '% of Total Spend' =
+			
+			DIVIDE (
+			    [Total Spend],
+			    CALCULATE ( [Total Spend], ALLSELECTED ( Fact_Spend[Category] ) )
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: 8e43c5ab-57ca-4344-9ae3-c452ba85d702
+
+	measure '% of Total Purchases' =
+			
+			DIVIDE (
+			    [Total Purchases],
+			    CALCULATE ( [Total Purchases], ALLSELECTED ( Fact_Channel[Channel] ) )
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: f1ba2eee-de5f-48bf-aa7a-1aea2f223cf5
+
+	measure '% of Customers' =
+			
+			DIVIDE (
+			    [Customer Count],
+			    CALCULATE ( [Customer Count], ALLSELECTED ( Dim_Customer ) )
+			)
+		formatString: 0.00 %;-0.00 %;0.00 %
+		lineageTag: f3c577ac-773a-4ff2-8c61-ba03adeb8ea5
+
+	measure 'Response Rate Comparison' =
+			
+			SWITCH (
+			    SELECTEDVALUE ( _Chart_ResponseComparison[Period] ),
+			    "Latest Campaign", [Latest Campaign Response Rate],
+			    "Historical Average", [Historical Response Rate]
+			)
+		formatString: 0\ %;-0\ %;0\ %
+		lineageTag: e8b737b8-0281-43f6-85bc-b54e40318e54
+
+	measure 'Avg Income' =
+			
+			-- los 0 y el 666666 ya vienen en null desde staging, AVERAGE los saltea
+			AVERAGE ( Dim_Customer[Income] )
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 9acb009d-3781-4315-9e73-0903d02738e8
+
+	measure 'Avg Age' = AVERAGE ( Dim_Customer[Age] )
+		formatString: 0
+		lineageTag: 06d658c7-16c8-4961-835b-46f06c55dfef
+
+	column Placeholder
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: b1b5858b-f12e-402f-9afb-6b30bf18887a
+		summarizeBy: sum
+		sourceColumn: Placeholder
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Origen = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WMlSKjQUA", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Placeholder = _t]),
+				    #"Tipo cambiado" = Table.TransformColumnTypes(Origen,{{"Placeholder", Int64.Type}})
+				in
+				    #"Tipo cambiado"
+
+	annotation PBI_ResultType = Table
+

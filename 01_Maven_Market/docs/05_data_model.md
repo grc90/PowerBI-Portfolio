@@ -1,14 +1,14 @@
 # Data Model
 
-The raw dataset arrives as a single flat table (2,240 rows × 28 columns). Rather than modeling directly against this wide structure, it is restructured into a **star/constellation schema** with one customer dimension, three fact tables (spend, channel, campaign), a campaign dimension, and a minimal date dimension.
+The raw data comes as one flat table (2,240 rows × 28 columns). I didn't want to model on top of that wide structure, so I reshaped it into a **star/constellation schema**: one customer dimension, three fact tables (spend, channel, campaign), a campaign dimension and a small date dimension.
 
 ## Why not keep it flat?
 
-Three groups of columns follow the same repeating pattern: 6 product spend columns, 3 purchase channel columns, and 6 campaign response columns. Every business question on the Campaign/Channel and Product pages involves comparing *across* these repeated columns.
+Three groups of columns repeat the same pattern: 6 product spend columns, 3 purchase channel columns and 6 campaign response columns. Almost every question on the Campaign/Channel and Product pages means comparing *across* one of those groups.
 
-In wide format, this requires one measure per column (six `[Total Wines]`, `[Total Fruits]`… measures for a single bar chart). In long format, one measure per fact — sliced by category, channel, or campaign — produces the same visual and composes naturally with every other filter.
+In wide format, that means one measure per column: six measures (`[Total Wines]`, `[Total Fruits]`…) just to build one bar chart. In long format, a single measure per fact, sliced by category, channel or campaign, gives you the same visual and works with every other filter without extra effort.
 
-The restructuring is driven by the business questions, not by "star schema for its own sake."
+So the business questions drove the restructuring. I wasn't building a star schema just because it's the textbook answer.
 
 ## Model diagram
 
@@ -32,32 +32,35 @@ Dim_Customer (2,240 rows)
 Dim_Date (linked to Enrollment_Date only)
 ```
 
-All relationships are one-to-many, single-directional (Dim → Fact). No bidirectional filtering.
+Every relationship is one-to-many and single-direction (Dim → Fact). No bidirectional filtering.
 
 ## Tables
 
 ### `Dim_Customer`
 
-One row per customer. Holds all demographic and behavioral attributes used for segmentation.
+One row per customer, with every demographic and behavioral attribute used for segmentation.
 
 | Column | Type | Notes |
 |---|---|---|
 | `CustomerID` | Integer (PK) | From raw `ID` |
 | `Year_Birth` | Integer | Nulled for 3 rows with implausible values (see Data Quality) |
-| `Age` | Integer (calc) | `2014 - Year_Birth`. Fixed to snapshot year, not `TODAY()` |
-| `Age_Bucket` | Text | Young Adult (≤34), Adult (35–54), Senior (55+) |
-| `Education` | Text | 5 categories retained as-is |
+| `Age` | Integer (calc) | `2014 - Year_Birth`. Fixed to the snapshot year, not `TODAY()` |
+| `Age_Bucket` | Text | Young Adult (≤34), Adult (35–54), Senior (55+), Unknown |
+| `Education` | Text | 5 categories, kept as they are |
 | `Marital_Status` | Text | Cleaned: `Alone`→`Single`; `YOLO`/`Absurd`→`Other` |
 | `Income` | Currency | 25 rows nulled (24 zero-fills + 1 outlier) |
 | `Income_Bucket` | Text | Low (<$35k), Mid ($35k–$68k), High (>$68k), Unknown |
-| `Kidhome`, `Teenhome` | Integer | Retained for granular analysis |
-| `Has_Children` | Boolean | `Kidhome + Teenhome > 0` |
+| `Kidhome`, `Teenhome` | Integer | Kept for more granular analysis |
+| `Has_Children` | Text | "Yes" if `Kidhome + Teenhome > 0`, otherwise "No" |
 | `Country` | Text | 8 countries |
 | `Enrollment_Date` | Date | From raw `Dt_Customer` |
 | `Recency` | Integer | Days since last purchase (snapshot value) |
-| `Complain` | Boolean | Complaint in last 2 years |
+| `Complain` | Integer | 1 if the customer complained in the last 2 years |
 | `NumWebVisitsMonth` | Integer | Web visits in the last month |
-| `NumDealsPurchases` | Integer | Kept in `Dim_Customer` as a pricing-mode attribute, not treated as a fourth channel |
+| `NumDealsPurchases` | Integer | Kept here as a pricing attribute, not treated as a fourth channel |
+| `Deal_Shopper` | Text | Deal-driven (deals ≥ 1/3 of channel purchases, ~p75), Full price, No purchases (6 customers) |
+| `Spend_Tier` | Text | Top 25% (total spend > $1,045, the p75) vs Rest |
+| `Age_Bucket_Sort`, `Income_Bucket_Sort` | Integer (hidden) | Sort-by columns so buckets appear in logical order, not alphabetical |
 
 ### `Fact_Spend`
 
@@ -79,7 +82,7 @@ Unpivoted from the 3 real channel columns (`NumWebPurchases`, `NumCatalogPurchas
 | `Channel` | Text | Web, Catalogue, Store |
 | `NumPurchases` | Integer | Purchase count |
 
-`NumDealsPurchases` is deliberately excluded — a "deal" is a pricing mode, not a channel, and mixing them would double-count purchases.
+I left `NumDealsPurchases` out on purpose. A deal is a way of paying, not a place to buy, and mixing the two would count the same purchases twice.
 
 ### `Fact_Campaign`
 
@@ -89,7 +92,7 @@ Unpivoted from the 5 `AcceptedCmpN` columns plus `Response`. One row per custome
 |---|---|---|
 | `CustomerID` | Integer (FK → Dim_Customer) | |
 | `CampaignID` | Integer (FK → Dim_Campaign) | 1–6 |
-| `Accepted` | Boolean | 1 if the customer accepted the campaign offer |
+| `Accepted` | Integer | 1 if the customer accepted the campaign offer |
 
 ### `Dim_Campaign`
 
@@ -102,16 +105,16 @@ Unpivoted from the 5 `AcceptedCmpN` columns plus `Response`. One row per custome
 | 5 | Campaign 5 | 0 |
 | 6 | Last Campaign | 1 |
 
-`Is_Latest` tags the most recent campaign so DAX measures on the Executive Summary page can filter on the dimension rather than hardcoding a column name.
+`Is_Latest` marks the most recent campaign, so the Executive Summary measures filter on the dimension instead of hardcoding a column name.
 
 ### `Dim_Date`
 
-Standard date table linked to `Enrollment_Date` only. Minimal scope — this project is not a time-series analysis (see Limitations). Used for enrollment cohort views on Page 2 if needed.
+A standard date table, linked to `Enrollment_Date` only. I kept it small on purpose: this isn't a time-series analysis (see Limitations). It's there for enrollment cohort views on Page 2, if they're needed.
 
-## Design decisions and their rationale
+## Design decisions
 
-- **Buckets pre-built in Power Query, not calculated in DAX.** Bucket definitions are modeling decisions, not runtime logic. Centralizing them in the ETL layer means one place to change definitions.
-- **Income and age bucket thresholds are data-driven** (based on dataset quartiles), not arbitrary fixed dollar amounts. This makes each bucket meaningful relative to *this* customer base.
-- **`Age` calculated as `2014 - Year_Birth`**, not `TODAY() - Year_Birth`. The dataset is a fixed historical snapshot; using `TODAY()` would silently age every customer by 10+ years and corrupt every age-based visual.
-- **`NumDealsPurchases` stays in `Dim_Customer`** rather than joining the channel fact. Deals are a pricing mode; treating them as a fourth channel would double-count purchases already captured in Web/Catalogue/Store.
-- **`Is_Latest` flag in `Dim_Campaign`** rather than special-casing the `Response` column in DAX. Keeps campaign logic uniform.
+- **Buckets are built in Power Query, not in DAX.** How you define a bucket is a modeling decision, not something to calculate at runtime. Keeping those definitions in the ETL layer means there's only one place to change them.
+- **Income and age thresholds come from the data** (dataset quartiles), not from round dollar amounts picked in advance. That way each bucket means something relative to *this* customer base.
+- **`Age` is `2014 - Year_Birth`, not `TODAY() - Year_Birth`.** The data is a fixed historical snapshot. Using `TODAY()` would quietly add 10+ years to every customer and throw off every age-based visual.
+- **`NumDealsPurchases` stays in `Dim_Customer`** instead of going into the channel fact. Deals describe how someone pays. Treating them as a fourth channel would double-count purchases already recorded under Web, Catalogue or Store.
+- **`Is_Latest` lives in `Dim_Campaign`** instead of special-casing the `Response` column in DAX. That keeps the campaign logic the same for all six campaigns.

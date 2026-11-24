@@ -1,0 +1,42 @@
+table Dim_Campaign
+	lineageTag: 27a0a662-3226-4b8c-8fd6-0323933993d7
+
+	column CampaignID
+		dataType: int64
+		formatString: 0
+		lineageTag: d7301675-af32-43f0-9bc3-425688062d5a
+		summarizeBy: none
+		sourceColumn: CampaignID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Campaign_Name
+		dataType: string
+		lineageTag: bc11daf9-8ed7-4bca-8d70-6bb764057091
+		summarizeBy: none
+		sourceColumn: Campaign_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column Is_Latest
+		dataType: int64
+		formatString: 0
+		lineageTag: 185ba6a1-50a8-4b86-964d-9f7d2cd3c18e
+		summarizeBy: none
+		sourceColumn: Is_Latest
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dim_Campaign = m
+		mode: import
+		source =
+				let
+				    Origen = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WMlTSUXJOzC1IzEzPUwBxDJRidaKVjJCFjeDCxsjCxnBhE2RhE7iwKbKwKVzYDMjySSwuUYDJAfmGSrGxAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [CampaignID = _t, Campaign_Name = _t, Is_Latest = _t]),
+				    #"Tipo cambiado" = Table.TransformColumnTypes(Origen,{{"CampaignID", Int64.Type}, {"Campaign_Name", type text}, {"Is_Latest", Int64.Type}})
+				in
+				    #"Tipo cambiado"
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+

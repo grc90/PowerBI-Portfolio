@@ -1,0 +1,22 @@
+table _Chart_ResponseComparison
+	lineageTag: 86b7febf-a15c-4046-91ab-ab5f2d718c6a
+
+	column Period
+		dataType: string
+		lineageTag: 8d672bfc-5df8-4dd1-a3fb-081cfbb3a9c5
+		summarizeBy: none
+		sourceColumn: Period
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Chart_ResponseComparison = m
+		mode: import
+		source =
+				let
+				    Origen = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45W8kksSS0uUXBOzC1IzEzPU4rViVbyyCwuyS/KTE7MUXAsSy1KTE9Vio0FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Period = _t]),
+				    #"Tipo cambiado" = Table.TransformColumnTypes(Origen,{{"Period", type text}})
+				in
+				    #"Tipo cambiado"
+
+	annotation PBI_ResultType = Table
+

@@ -1,10 +1,10 @@
 # DAX Measures
 
-All measures live in a dedicated `_Measures` table (empty table, single hidden placeholder column) to keep the Fields pane organized. Built in four layers, each verified against source totals before the next layer was built.
+Every measure lives in a dedicated `_Measures` table (an empty table with one hidden placeholder column) so the Fields pane stays tidy. I built them in four layers and checked each one against source totals before building the next on top of it.
 
 ## Layer 1 — Base measures
 
-Direct aggregations over fact tables. Everything else composes from these.
+Plain aggregations over the fact tables. Everything else is built from these.
 
 ```dax
 Total Spend = SUM ( Fact_Spend[Amount] )
@@ -20,7 +20,7 @@ Customer Count = COUNTROWS ( Dim_Customer )
 
 ## Layer 2 — Ratios and averages
 
-All divisions use `DIVIDE()`, never the `/` operator, so a zero-row filter context returns blank instead of breaking the visual.
+Every division uses `DIVIDE()`, never the `/` operator. When a filter leaves zero rows, the visual shows a blank instead of an error.
 
 ```dax
 Total Campaign Offers = COUNTROWS ( Fact_Campaign )
@@ -36,11 +36,11 @@ Acceptance per Customer = DIVIDE ( [Total Accepted], [Customer Count] )
 
 **Verified values (no filter):** Total Campaign Offers = 13,440 · Response Rate = 7.45% · Avg Spend per Customer = 605.80 · Purchases per Customer = 12.54 · Acceptance per Customer = 0.45
 
-**Context test passed:** filtering to Spain recalculates all ratios correctly (e.g., Avg Spend per Customer stays ~605, confirming numerator and denominator move together rather than one being stuck).
+**Context test passed:** with a Spain filter, every ratio recalculates correctly. Avg Spend per Customer, for example, stays around 605, which tells me the numerator and denominator move together and neither one is stuck at the global value.
 
 ## Layer 3 — Contextual measures
 
-Use `CALCULATE` to apply specific filters, answering the brief's question about which campaign performed best — as a rate, not a raw count, correcting the prior analysis's methodology.
+These use `CALCULATE` to apply specific filters. They answer the brief's question about which campaign performed best, this time as a rate instead of a raw count, which fixes the method used in the previous analysis.
 
 ```dax
 Latest Campaign Response Rate = 
@@ -57,9 +57,9 @@ Campaign Reach Rate = DIVIDE ( [Customers Who Accepted Any], [Customer Count] )
 
 **Verified values (no filter):** Latest Campaign Response Rate = 14.91% · Historical Response Rate = 5.96% · Customers Who Accepted Any = 609 · Campaign Reach Rate = 27.19%
 
-**Key insight:** the most recent campaign achieved a response rate ~2.5× the historical average, while overall campaign reach was only 27.19% — roughly 3 in 4 customers never accepted any of the six campaigns offered over two years.
+**What stood out:** the latest campaign's response rate is about 2.5× the historical average. Overall reach, though, is only 27.19%: roughly 3 in 4 customers didn't accept a single one of the six campaigns over two years.
 
-**Logic check passed:** `Customers Who Accepted Any` (609) ≤ `Total Accepted` (1,001), confirming the distinct-customer count cannot exceed the total acceptance-event count.
+**Logic check passed:** `Customers Who Accepted Any` (609) ≤ `Total Accepted` (1,001). The number of distinct customers can't be higher than the number of acceptances, so this is a cheap sanity check worth keeping.
 
 ## Layer 4 — Percentage of total
 
@@ -83,22 +83,38 @@ DIVIDE (
 )
 ```
 
-### Design note: ALL() vs ALLSELECTED()
+### The bug that taught me ALL() vs ALLSELECTED()
 
-These measures were initially built with `ALL()` instead of `ALLSELECTED()`. Testing surfaced an inconsistency: with a `Country = Spain` filter applied, `% of Total Spend` and `% of Total Purchases` correctly summed to 100% within category/channel breakdowns, but `% of Customers` collapsed to 48.88% — the country's share of the *global* customer base, not 100% of the filtered subset.
+My first version of these measures used `ALL()`. Testing with `Country = Spain` turned up an inconsistency: `% of Total Spend` and `% of Total Purchases` added up to 100% across categories and channels, as they should, but `% of Customers` only reached 48.88%. That's Spain's share of the *global* customer base, not 100% of the filtered group.
 
-**Root cause:** `ALL(Dim_Customer)` clears every filter on the entire table, including the `Country` filter coming from the slicer (since `Country` lives on that same table). `ALL(Fact_Spend[Category])`, by contrast, only clears the `Category` column — the `Country` filter (applied via a different table) survives untouched.
+**Root cause:** `ALL(Dim_Customer)` removes every filter on that table, including the `Country` filter from the slicer, because `Country` lives on that same table. `ALL(Fact_Spend[Category])` only clears the `Category` column, so a `Country` filter coming from another table survives.
 
-**Fix:** replaced `ALL()` with `ALLSELECTED()` across all three measures. `ALLSELECTED` clears the breakdown field introduced by the visual (e.g., `Age_Bucket` in a table) while preserving filters explicitly set by slicers elsewhere on the page. This is the standard DAX pattern for "% of total" measures that must remain consistent regardless of which dimension is used to break them down, or which slicers are active.
+**Fix:** I switched all three measures to `ALLSELECTED()`. It clears the breakdown field the visual introduces (say, `Age_Bucket` in a table) but keeps the filters set by slicers elsewhere on the page. It's the standard DAX pattern for a "% of total" that has to stay consistent whatever dimension you break it down by and whatever slicers are active.
 
-**Verified:** with `Country = Spain` applied, a table broken down by `Fact_Spend[Category]`, `Fact_Channel[Channel]`, and `Dim_Customer[Age_Bucket]` each sums to exactly 100% — and the underlying absolute values reconstruct the Layer 1 totals for Spain (662,220 spend, 13,583 purchases, 1,095 customers), cross-validating both layers against each other.
+**Verified:** with `Country = Spain`, tables broken down by `Fact_Spend[Category]`, `Fact_Channel[Channel]` and `Dim_Customer[Age_Bucket]` each add up to exactly 100%. The absolute values underneath also rebuild the Layer 1 totals for Spain (662,220 spend, 13,583 purchases, 1,095 customers), so the two layers confirm each other.
+
+## Added for the report
+
+```dax
+Avg Income = AVERAGE ( Dim_Customer[Income] )
+
+Avg Age = AVERAGE ( Dim_Customer[Age] )
+```
+
+**Verified values (no filter):** Avg Income = $51,970 · Avg Age = 45
+
+`AVERAGE` skips blanks, so the 25 nulled incomes and 3 nulled birth years drop out on their own instead of pulling the average down.
+
+## Format strings
+
+Formats are set on the measures, not on each visual: currency `$#,0` for spend and income, `0.00 %` for every rate and % of total, and `0.0` for Purchases per Customer. Before I did this, every new visual showed raw decimals like 0.0745.
 
 ## Naming convention
 
-- Measures referenced without a table name: `[Total Spend]`
-- Columns referenced with their table: `Fact_Spend[Amount]`
-- Never reference a column without its table, even where DAX permits it — the convention exists so a formula's structure is legible at a glance.
+- Measures are referenced without a table name: `[Total Spend]`
+- Columns are always referenced with their table: `Fact_Spend[Amount]`
+- I never reference a column without its table, even where DAX allows it. The point is that you can tell measures from columns at a glance.
 
-## Verification discipline
+## Why I verify every layer
 
-Every layer was validated against ground-truth totals (verified directly from the source Excel where the original claim in this project's write-ups was approximate) before the next layer was built on top of it. The `% of Customers` bug above is a direct product of that discipline — it was caught by testing table breakdowns under an active slicer, not by trusting card visuals alone (cards don't expose row/column context bugs, since there's no breakdown dimension for `ALL` vs `ALLSELECTED` to disagree on).
+Each layer was checked against ground-truth totals before I built anything on top of it. Where a figure in my own earlier notes was only approximate, I went back to the source Excel to confirm it. The `% of Customers` bug is a good example of why this matters: I caught it by testing breakdown tables with a slicer active. Card visuals would never have shown it. A card has no breakdown dimension, so `ALL` and `ALLSELECTED` return the same thing and the bug stays hidden.

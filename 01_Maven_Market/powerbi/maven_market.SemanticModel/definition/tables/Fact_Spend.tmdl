@@ -1,0 +1,53 @@
+table Fact_Spend
+	lineageTag: cb86cd27-1091-487e-9649-9410aeb1d113
+
+	column CustomerID
+		dataType: int64
+		formatString: 0
+		lineageTag: 1af9ac93-4574-4882-98c6-19976be2b51c
+		summarizeBy: none
+		sourceColumn: CustomerID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: 3301b986-621e-42c8-aff0-adadee63b1da
+		summarizeBy: none
+		sourceColumn: Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Amount
+		dataType: double
+		lineageTag: c17bb348-8fc9-435e-bb44-f7d6a6096c0a
+		summarizeBy: sum
+		sourceColumn: Amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Fact_Spend = m
+		mode: import
+		source =
+				let
+				    Origen = Stg_MarketingData_Clean,
+				    #"Select Spend Columns" = Table.SelectColumns(Origen,{"ID", "MntWines", "MntFruits", "MntMeatProducts", "MntFishProducts", "MntSweetProducts", "MntGoldProds"}),
+				    #"Rename to CustomerID" = Table.RenameColumns(#"Select Spend Columns",{{"ID", "CustomerID"}}),
+				    #"Unpivot Spend Columns" = Table.UnpivotOtherColumns(#"Rename to CustomerID", {"CustomerID"}, "Atributo", "Valor"),
+				    #"Rename Attribute and Value" = Table.RenameColumns(#"Unpivot Spend Columns",{{"Atributo", "Category"}, {"Valor", "Amount"}}),
+				    #"Rename Wines" = Table.ReplaceValue(#"Rename Attribute and Value","MntWines","Wines",Replacer.ReplaceValue,{"Category"}),
+				    #"Rename Fruits" = Table.ReplaceValue(#"Rename Wines","MntFruits","Fruits",Replacer.ReplaceValue,{"Category"}),
+				    #"Rename Meat" = Table.ReplaceValue(#"Rename Fruits","MntMeatProducts","Meat",Replacer.ReplaceText,{"Category"}),
+				    #"Rename Fish" = Table.ReplaceValue(#"Rename Meat","MntFishProducts","Fish",Replacer.ReplaceValue,{"Category"}),
+				    #"Rename Sweets" = Table.ReplaceValue(#"Rename Fish","MntSweetProducts","Sweets",Replacer.ReplaceValue,{"Category"}),
+				    #"Rename Gold" = Table.ReplaceValue(#"Rename Sweets","MntGoldProds","Gold",Replacer.ReplaceValue,{"Category"}),
+				    #"Set Column Types" = Table.TransformColumnTypes(#"Rename Gold",{{"CustomerID", Int64.Type}, {"Category", type text}, {"Amount", type number}})
+				in
+				    #"Set Column Types"
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+

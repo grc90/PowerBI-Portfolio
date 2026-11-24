@@ -1,0 +1,25 @@
+model Model
+	culture: es-ES
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: es-ES
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["Src_MarketingData","Stg_MarketingData_Clean","Dim_Customer","Fact_Spend","Fact_Channel","Fact_Campaign","Dim_Campaign","Dim_Date","_Measures","_Chart_ResponseComparison"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Dim_Customer
+ref table Fact_Spend
+ref table Fact_Channel
+ref table Fact_Campaign
+ref table Dim_Campaign
+ref table Dim_Date
+ref table _Measures
+ref table _Chart_ResponseComparison
+
+ref cultureInfo es-ES
+

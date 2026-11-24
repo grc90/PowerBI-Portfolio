@@ -1,0 +1,49 @@
+table Fact_Channel
+	lineageTag: 201f34bf-6b27-4e07-9378-0cc924cff88b
+
+	column CustomerID
+		dataType: int64
+		formatString: 0
+		lineageTag: 7c6b5d56-782b-4a79-bd1b-0d7df0a757c0
+		summarizeBy: none
+		sourceColumn: CustomerID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Channel
+		dataType: string
+		lineageTag: b93320a2-8404-4fa0-b0e2-20dae72e95f9
+		summarizeBy: none
+		sourceColumn: Channel
+
+		annotation SummarizationSetBy = Automatic
+
+	column NumPurchases
+		dataType: int64
+		formatString: 0
+		lineageTag: 224fc46d-c5d1-40df-be62-f396fe7cfd6f
+		summarizeBy: sum
+		sourceColumn: NumPurchases
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Fact_Channel = m
+		mode: import
+		source =
+				let
+				    Origen = Stg_MarketingData_Clean,
+				    #"Select Channel Columns" = Table.SelectColumns(Origen,{"ID", "NumWebPurchases", "NumCatalogPurchases", "NumStorePurchases"}),
+				    #"Rename to CustomerID" = Table.RenameColumns(#"Select Channel Columns",{{"ID", "CustomerID"}}),
+				    #"Unpivot Channel Columns" = Table.UnpivotOtherColumns(#"Rename to CustomerID", {"CustomerID"}, "Atributo", "Valor"),
+				    #"Rename Attribute and Value" = Table.RenameColumns(#"Unpivot Channel Columns",{{"Atributo", "Channel"}, {"Valor", "NumPurchases"}}),
+				    #"Rename Web" = Table.ReplaceValue(#"Rename Attribute and Value","NumWebPurchases","Web",Replacer.ReplaceValue,{"Channel"}),
+				    #"Rename Catalogue" = Table.ReplaceValue(#"Rename Web","NumCatalogPurchases","Catalogue",Replacer.ReplaceValue,{"Channel"}),
+				    #"Rename Store" = Table.ReplaceValue(#"Rename Catalogue","NumStorePurchases","Store",Replacer.ReplaceValue,{"Channel"}),
+				    #"Set Column Types" = Table.TransformColumnTypes(#"Rename Store",{{"CustomerID", Int64.Type}, {"Channel", type text}, {"NumPurchases", Int64.Type}})
+				in
+				    #"Set Column Types"
+
+	annotation PBI_NavigationStepName = Navegación
+
+	annotation PBI_ResultType = Table
+

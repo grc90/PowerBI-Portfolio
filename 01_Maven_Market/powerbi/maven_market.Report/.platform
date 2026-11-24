@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "maven_market"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "2c4a3cc9-a596-4a64-b036-d606c898cfa1"
+  }
+}

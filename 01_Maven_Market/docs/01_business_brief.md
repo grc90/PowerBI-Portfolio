@@ -2,40 +2,40 @@
 
 ## Client
 
-Maven Marketing — a customer analytics team analyzing profiles, product preferences, and campaign outcomes to optimize marketing strategies.
+Maven Marketing, a customer analytics team that looks at customer profiles, product preferences and campaign results to decide where marketing effort should go.
 
 ## Problem
 
-Maven Marketing has data on 2,240 customers but currently faces:
+Maven Marketing has data on 2,240 customers, but three things are getting in the way of using it:
 
-- Unclear segmentation of the customer base
-- Limited insight into product performance and preferences
-- Inefficiencies in campaign and channel performance
+- No clear segmentation of the customer base
+- Little visibility into which products perform and who buys them
+- Campaigns and channels that aren't performing as well as they could
 
-The stated goal is to improve customer targeting, optimize campaign strategy, and increase engagement and ROI through data-driven insights.
+The goal they set is to target customers better, sharpen campaign strategy, and get more engagement and ROI out of the marketing budget.
 
 ## Strategic objectives
 
-Three pillars anchor this project:
+I organized the project around three pillars:
 
-1. **Customer segmentation** — profile the base and understand how demographic, behavioral, and purchase patterns cluster customers into meaningful groups.
-2. **Campaign and channel performance** — identify which campaigns and channels drive engagement, and which are underperforming.
-3. **Product performance** — identify which product categories drive spend and how preferences vary by segment.
+1. **Customer segmentation.** Profile the base and see how demographic, behavioral and purchase patterns group customers into segments that actually mean something.
+2. **Campaign and channel performance.** Find out which campaigns and channels drive engagement, and which ones don't.
+3. **Product performance.** Find out which product categories drive spend and how preferences change from one segment to another.
 
 ## Stakeholders
 
-- **Marketers** — need actionable insight into which campaigns and channels work for which segments.
-- **Product managers** — need visibility into category-level product performance.
-- **Executives** — need a high-level view of ROI, engagement, and top-line KPIs.
+- **Marketers** need to know which campaigns and channels work for which segments.
+- **Product managers** need to see how each product category is performing.
+- **Executives** need a quick read on ROI, engagement and the headline KPIs.
 
 ## Deliverable
 
 An interactive Power BI dashboard that:
 
-- Displays customer segmentation, product trends, campaign ROI, and channel effectiveness
-- Is understandable to non-technical stakeholders in under a minute
-- Guides concrete decisions on campaign strategy, channel allocation, and product focus
+- Shows customer segmentation, product trends, campaign ROI and channel effectiveness
+- A non-technical stakeholder can understand in under a minute
+- Leads to concrete decisions on campaign strategy, channel allocation and product focus
 
-## Note on scope
+## A note on scope
 
-The dataset for this project is `Marketing_Campaign.xlsx`, a Maven Marketing customer file. It includes a previous analyst's completed analysis (Q1–Q6 sheets and a Dashboard sheet). Those are treated as **reference only, not ground truth**. This project is built independently from the raw `marketing_data` sheet, verifying and — where necessary — challenging the previous analyst's conclusions.
+The data comes from `Marketing_Campaign.xlsx`, a Maven Marketing customer file. It already contains a previous analyst's work (the Q1–Q6 sheets and a Dashboard sheet). I used that work as **a reference, not as ground truth**. Everything here was built from scratch on the raw `marketing_data` sheet, checking the earlier conclusions along the way and pushing back on them where the data didn't support them.
